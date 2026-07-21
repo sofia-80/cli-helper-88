@@ -1,16 +1,40 @@
-export async function retry<T>(fn: () => Promise<T>, retries: number = 3, delay: number = 1000): Promise<T> {
-    let attempts = 0;
-    while (attempts < retries) {
-        try {
-            return await fn();
-        } catch (error) {
-            attempts++;
-            if (attempts >= retries) {
-                throw error;
-            }
-            console.warn(`Attempt ${attempts} failed. Retrying in ${delay}ms...`);
-            await new Promise(res => setTimeout(res, delay));
-        }
+export const generateRandomString = (length: number): string => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * characters.length);
+        result += characters[randomIndex];
     }
-    throw new Error('Max retries reached');
-}
+    return result;
+};
+
+export const debounce = (func: Function, delay: number) => {
+    let timeoutId: NodeJS.Timeout;
+    return (...args: any[]) => {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+        timeoutId = setTimeout(() => {
+            func(...args);
+        }, delay);
+    };
+};
+
+export const throttle = (func: Function, limit: number) => {
+    let lastFunc: NodeJS.Timeout;
+    let lastRan: number;
+    return function(...args: any[]) {
+        if (!lastRan) {
+            func(...args);
+            lastRan = Date.now();
+        } else {
+            clearTimeout(lastFunc);
+            lastFunc = setTimeout(function() {
+                if ((Date.now() - lastRan) >= limit) {
+                    func(...args);
+                    lastRan = Date.now();
+                }
+            }, limit - (Date.now() - lastRan));
+        }
+    };
+};
