@@ -1,31 +1,29 @@
-export interface User {
-    id: number;
-    name: string;
-    email: string;
-    createdAt: Date;
-}
+type InputValidator = (input: string) => boolean;
 
-export interface Product {
-    id: number;
-    title: string;
-    price: number;
-    availability: boolean;
-}
+type ValidationResult = {
+    isValid: boolean;
+    message: string;
+};
 
-export interface Order {
-    orderId: number;
-    userId: number;
-    products: Array<{ productId: number; quantity: number; }>; 
-    totalAmount: number;
-    orderDate: Date;
-}
+const validateInput: InputValidator = (input) => {
+    const regex = /^[a-zA-Z0-9_]+$/;  // Allow only alphanumeric and underscores
+    return regex.test(input);
+};
 
-export interface ApiResponse<T> {
-    success: boolean;
-    data?: T;
-    error?: string;
-}
+const getValidationResult = (input: string): ValidationResult => {
+    if (validateInput(input)) {
+        return { isValid: true, message: 'Input is valid' };
+    }
+    return { isValid: false, message: 'Input contains invalid characters' };
+};
 
-export type UserListResponse = ApiResponse<User[]>;
-export type ProductDetailResponse = ApiResponse<Product>;
-export type OrderListResponse = ApiResponse<Order[]>;
+const mainProcessingLoop = () => {
+    const inputs = ['validInput123', 'invalid/input!', 'another$Invalid'];
+
+    inputs.forEach((input) => {
+        const result = getValidationResult(input);
+        console.log(`Input: ${input}, Validation: ${result.message}`);
+    });
+};
+
+mainProcessingLoop();
