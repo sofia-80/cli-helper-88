@@ -1,40 +1,43 @@
-export const generateRandomString = (length: number): string => {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        const randomIndex = Math.floor(Math.random() * characters.length);
-        result += characters[randomIndex];
-    }
-    return result;
+import fs from 'fs';
+import * as path from 'path';
+import winston from 'winston';
+import 'winston-daily-rotate-file';
+
+const logDir = path.join(__dirname, 'logs');
+
+if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir);
+}
+
+const transport = new winston.transports.DailyRotateFile({
+    filename: path.join(logDir, '%DATE%-results.log'),
+    datePattern: 'YYYY-MM-DD',
+    prepend: true,
+    level: 'info',
+    zippedArchive: true,
+    maxSize: '20m',
+    maxFiles: '14d',
+});
+
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.printf(({ timestamp, level, message }) => {
+            return `[{timestamp}] [${level}] ${message}`;
+        })
+    ),
+    transports: [transport],
+});
+
+export const logInfo = (message: string) => {
+    logger.info(message);
 };
 
-export const debounce = (func: Function, delay: number) => {
-    let timeoutId: NodeJS.Timeout;
-    return (...args: any[]) => {
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-        }
-        timeoutId = setTimeout(() => {
-            func(...args);
-        }, delay);
-    };
+export const logError = (message: string) => {
+    logger.error(message);
 };
 
-export const throttle = (func: Function, limit: number) => {
-    let lastFunc: NodeJS.Timeout;
-    let lastRan: number;
-    return function(...args: any[]) {
-        if (!lastRan) {
-            func(...args);
-            lastRan = Date.now();
-        } else {
-            clearTimeout(lastFunc);
-            lastFunc = setTimeout(function() {
-                if ((Date.now() - lastRan) >= limit) {
-                    func(...args);
-                    lastRan = Date.now();
-                }
-            }, limit - (Date.now() - lastRan));
-        }
-    };
+export const logDebug = (message: string) => {
+    logger.debug(message);
 };
