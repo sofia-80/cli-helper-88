@@ -1,28 +1,29 @@
-import * as readline from 'readline';
+interface User { id: number; name: string; email: string; }
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+class UserService {
+    private users: User[] = [];
 
-function isValidInput(input: string): boolean {
-  const regex = /^[a-zA-Z0-9 ]+$/;
-  return regex.test(input);
-}
-
-function processInput(input: string): void {
-  console.log(`Processing: ${input}`);
-}
-
-function main(): void {
-  rl.question('Enter input: ', (input) => {
-    if (isValidInput(input)) {
-      processInput(input);
-    } else {
-      console.error('Invalid input. Please use alphanumeric characters only.');
+    public addUser(user: User): void {
+        this.users.push(user);
     }
-    rl.close();
-  });
+
+    public getUser(id: number): User | undefined {
+        return this.users.find(user => user.id === id);
+    }
+
+    public deleteUser(id: number): boolean {
+        const initialLength = this.users.length;
+        this.users = this.users.filter(user => user.id !== id);
+        return this.users.length < initialLength;
+    }
+
+    public listUsers(): User[] {
+        return this.users;
+    }
 }
 
-main();
+const userService = new UserService();
+userService.addUser({ id: 1, name: 'Alice', email: 'alice@example.com' });
+userService.addUser({ id: 2, name: 'Bob', email: 'bob@example.com' });
+
+console.log(userService.listUsers());
