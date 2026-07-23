@@ -1,43 +1,45 @@
-import fs from 'fs';
-import * as path from 'path';
-import winston from 'winston';
-import 'winston-daily-rotate-file';
+export function memoize<T extends (...args: any[]) => any>(fn: T): T {
+    const cache: Map<string, ReturnType<T>> = new Map();
 
-const logDir = path.join(__dirname, 'logs');
-
-if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir);
+    return function (...args: Parameters<T>): ReturnType<T> {
+        const key = JSON.stringify(args);
+        if (cache.has(key)) {
+            return cache.get(key) as ReturnType<T>;
+        }
+        const result = fn(...args);
+        cache.set(key, result);
+        return result;
+    } as T;
 }
 
-const transport = new winston.transports.DailyRotateFile({
-    filename: path.join(logDir, '%DATE%-results.log'),
-    datePattern: 'YYYY-MM-DD',
-    prepend: true,
-    level: 'info',
-    zippedArchive: true,
-    maxSize: '20m',
-    maxFiles: '14d',
-});
+export function throttle<T extends (...args: any[]) => void>(fn: T, wait: number): T {
+    let lastCall = 0;
+    let timeout: NodeJS.Timeout | null = null;
 
-const logger = winston.createLogger({
-    level: 'info',
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.printf(({ timestamp, level, message }) => {
-            return `[{timestamp}] [${level}] ${message}`;
-        })
-    ),
-    transports: [transport],
-});
+    return function (...args: any[]) {
+        const now = Date.now();
+        if (lastCall && now < lastCall + wait) {
+            clearTimeout(timeout!);
+            timeout = setTimeout(() => {
+                lastCall = now;
+                fn(...args);
+            }, wait - (now - lastCall));
+        } else {
+            lastCall = now;
+            fn(...args);
+        }
+    } as T;
+}
 
-export const logInfo = (message: string) => {
-    logger.info(message);
-};
+export function debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T {
+    let timeout: NodeJS.Timeout | null = null;
 
-export const logError = (message: string) => {
-    logger.error(message);
-};
-
-export const logDebug = (message: string) => {
-    logger.debug(message);
-};
+    return function (...args: any[]) {
+        if (timeout) {
+            clearTimeout(timeout);
+        }
+        timeout = setTimeout(() => {
+            fn(...args);
+        }, wait);
+    } as T;
+}
