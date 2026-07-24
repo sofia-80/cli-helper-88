@@ -1,37 +1,49 @@
-import fs from 'fs';
-import path from 'path';
-import winston from 'winston';
-import 'winston-daily-rotate-file';
-
-const createLogger = () => {
-    const logDirectory = path.join(__dirname, 'logs');
-
-    // Ensure log directory exists
-    if (!fs.existsSync(logDirectory)) {
-        fs.mkdirSync(logDirectory);
+export function chunkArray<T>(arr: T[], size: number): T[][] {
+    const result: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) {
+        result.push(arr.slice(i, i + size));
     }
+    return result;
+}
 
-    const transport = new winston.transports.DailyRotateFile({
-        filename: path.join(logDirectory, '%DATE%.log'),
-        datePattern: 'YYYY-MM-DD',
-        zippedArchive: true,
-        maxSize: '20m',
-        maxFiles: '14d',
-        level: 'info',
-    });
+export function debounce<T extends (...args: any[]) => void>(func: T, delay: number): T {
+    let timeoutId: NodeJS.Timeout | null = null;
+    return function (this: any, ...args: any[]) {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+    } as T;
+}
 
-    const logger = winston.createLogger({
-        level: 'info',
-        format: winston.format.combine(
-            winston.format.timestamp(),
-            winston.format.printf(({ timestamp, level, message }) => {
-                return `${timestamp} ${level}: ${message}`;
-            })
-        ),
-        transports: [transport],
-    });
+export function deepMerge<T>(target: T, source: Partial<T>): T {
+    for (const key in source) {
+        if (source[key] instanceof Object && key in target) {
+            target[key] = deepMerge(target[key], source[key]);
+        } else {
+            target[key] = source[key];
+        }
+    }
+    return target;
+}
 
-    return logger;
-};
+export function generateRandomId(length: number = 8): string {
+    return Math.random().toString(36).substr(2, length);
+}
 
-export default createLogger();
+export function throttle<T extends (...args: any[]) => void>(func: T, limit: number): T {
+    let lastFunc: NodeJS.Timeout | null;
+    let lastRan: number;
+    return function (this: any, ...args: any[]) {
+        if (!lastRan) {
+            func.apply(this, args);
+            lastRan = Date.now();
+        } else {
+            if (lastFunc) clearTimeout(lastFunc);
+            lastFunc = setTimeout(() => {
+                if (Date.now() - lastRan >= limit) {
+                    func.apply(this, args);
+                    lastRan = Date.now();
+                }
+            }, limit - (Date.now() - lastRan));
+        }
+    } as T;
+}
