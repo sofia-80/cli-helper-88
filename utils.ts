@@ -1,45 +1,29 @@
-export function memoize<T extends (...args: any[]) => any>(fn: T): T {
-    const cache: Map<string, ReturnType<T>> = new Map();
+type PerformanceMetrics = {
+    executionTime: number;
+    memoryUsage: number;
+};
 
-    return function (...args: Parameters<T>): ReturnType<T> {
-        const key = JSON.stringify(args);
-        if (cache.has(key)) {
-            return cache.get(key) as ReturnType<T>;
-        }
-        const result = fn(...args);
-        cache.set(key, result);
-        return result;
-    } as T;
+export function measurePerformance(fn: Function, ...args: any[]): PerformanceMetrics {
+    const startMemory = process.memoryUsage().heapUsed;
+    const startTime = process.hrtime();
+    
+    const result = fn(...args);
+    
+    const endTime = process.hrtime(startTime);
+    const endMemory = process.memoryUsage().heapUsed;
+    
+    return {
+        executionTime: endTime[0] * 1e3 + endTime[1] / 1e6,
+        memoryUsage: endMemory - startMemory,
+    }; 
 }
 
-export function throttle<T extends (...args: any[]) => void>(fn: T, wait: number): T {
-    let lastCall = 0;
-    let timeout: NodeJS.Timeout | null = null;
-
-    return function (...args: any[]) {
-        const now = Date.now();
-        if (lastCall && now < lastCall + wait) {
-            clearTimeout(timeout!);
-            timeout = setTimeout(() => {
-                lastCall = now;
-                fn(...args);
-            }, wait - (now - lastCall));
-        } else {
-            lastCall = now;
-            fn(...args);
+export function optimizeArray<T>(array: T[], callback: (item: T) => boolean): T[] {
+    const uniqueItems = new Set<T>();
+    for (const item of array) {
+        if (callback(item)) {
+            uniqueItems.add(item);
         }
-    } as T;
-}
-
-export function debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T {
-    let timeout: NodeJS.Timeout | null = null;
-
-    return function (...args: any[]) {
-        if (timeout) {
-            clearTimeout(timeout);
-        }
-        timeout = setTimeout(() => {
-            fn(...args);
-        }, wait);
-    } as T;
+    }
+    return Array.from(uniqueItems);
 }
