@@ -1,27 +1,37 @@
-export function validateInput(input: string): boolean {
-    const regex = /^[a-zA-Z0-9]+$/;
-    return regex.test(input);
-}
+import fs from 'fs';
+import path from 'path';
+import winston from 'winston';
+import 'winston-daily-rotate-file';
 
-export function processInput(input: string): string {
-    if (!validateInput(input)) {
-        throw new Error('Invalid input. Only alphanumeric characters are allowed.');
-    }  
-    // Proceed with processing the valid input.
-    return `Processed: ${input}`;
-}
+const createLogger = () => {
+    const logDirectory = path.join(__dirname, 'logs');
 
-export function mainLoop(inputs: string[]): void {
-    for (const input of inputs) {
-        try {
-            const result = processInput(input);
-            console.log(result);
-        } catch (error) {
-            console.error(`Error: ${error.message}`);
-        }
+    // Ensure log directory exists
+    if (!fs.existsSync(logDirectory)) {
+        fs.mkdirSync(logDirectory);
     }
-}
 
-// Example usage
-const inputsToProcess = ['validInput123', 'invalidInput@!', 'anotherValidInput456'];
-mainLoop(inputsToProcess);
+    const transport = new winston.transports.DailyRotateFile({
+        filename: path.join(logDirectory, '%DATE%.log'),
+        datePattern: 'YYYY-MM-DD',
+        zippedArchive: true,
+        maxSize: '20m',
+        maxFiles: '14d',
+        level: 'info',
+    });
+
+    const logger = winston.createLogger({
+        level: 'info',
+        format: winston.format.combine(
+            winston.format.timestamp(),
+            winston.format.printf(({ timestamp, level, message }) => {
+                return `${timestamp} ${level}: ${message}`;
+            })
+        ),
+        transports: [transport],
+    });
+
+    return logger;
+};
+
+export default createLogger();
